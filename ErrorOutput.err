@@ -1,0 +1,14 @@
+
+
+
+run.ino: In function ‘void setup()’:
+run.ino:33:65: error: invalid conversion from ‘char*’ to ‘byte* {aka unsigned char*}’ [-fpermissive]
+In file included from run.ino:3:0:
+/home/a/sketchbook/libraries/SevSeg/SevSeg.h:52:8: note: initializing argument 3 of ‘void SevSeg::begin(byte, byte, byte*, byte*, bool, bool, bool)’
+   void begin(byte hardwareConfig, byte numDigitsIn, byte digitPinsIn[],
+        ^
+run.ino:33:65: error: invalid conversion from ‘char*’ to ‘byte* {aka unsigned char*}’ [-fpermissive]
+In file included from run.ino:3:0:
+/home/a/sketchbook/libraries/SevSeg/SevSeg.h:52:8: note: initializing argument 4 of ‘void SevSeg::begin(byte, byte, byte*, byte*, bool, bool, bool)’
+   void begin(byte hardwareConfig, byte numDigitsIn, byte digitPinsIn[],
+        ^
