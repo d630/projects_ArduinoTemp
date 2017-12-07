@@ -1,6 +1,7 @@
+#include <Adafruit_Sensor.h>
 #include <math.h>
-#include "DHT.h"
-#include "SevSeg.h"
+#include <DHT.h>
+#include <SevSeg.h>
 
 #define DEBUG 0
 
@@ -20,9 +21,9 @@
 #define PIN_BUTTON 14
 
 SevSeg sevseg;
-char numDigits = 4;
-char digitPins[] = {2, 3, 4, 5};
-char segmentPins[] = {6, 7, 8, 9, 10, 11, 12, 13};
+byte numDigits = 4;
+byte digitPins[] = {2, 3, 4, 5};
+byte segmentPins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 
 DHT dht(DHTPIN, DHTTYPE);
 char humi;
@@ -30,7 +31,7 @@ char tempe;
 char buf[4];
 
 void setup() {
-    sevseg.begin(COMMON_ANODE, numDigits, digitPins, segmentPins);
+    sevseg.begin(COMMON_ANODE, numDigits, digitPins, segmentPins,1,1,0);
     sevseg.setBrightness(SEV_SEG_BRIGHTNESS);
 
     dht.begin();
