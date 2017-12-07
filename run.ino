@@ -28,10 +28,10 @@ byte segmentPins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 DHT dht(DHTPIN, DHTTYPE);
 char humi;
 char tempe;
-char buf[4];
+char buf[14];
 
 void setup() {
-    sevseg.begin(COMMON_ANODE, numDigits, digitPins, segmentPins,1,1,0);
+    sevseg.begin(COMMON_ANODE, numDigits, digitPins, segmentPins,0,1);
     sevseg.setBrightness(SEV_SEG_BRIGHTNESS);
 
     dht.begin();
@@ -42,9 +42,6 @@ void setup() {
     pinMode(LED_BLUE, OUTPUT);
     pinMode(LED_GREEN, OUTPUT);
 
-    if (DEBUG) {
-        Serial.begin(9600);
-    }
 }
 
 void loop() {
@@ -79,11 +76,6 @@ void loop() {
     }
     
     sevseg.setChars(buf);
-
-    if (DEBUG) {
-        Serial.println(humi);
-        Serial.println(tempe);
-    }
 
     sevseg.refreshDisplay();
 }
