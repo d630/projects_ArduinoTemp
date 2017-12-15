@@ -3,116 +3,138 @@
 #include "SevSeg.h"
 #include "TimerOne.h"
 
-#define DEBUG 0
+#define SEVSEG_BRIGHTNESS 90
 
-#define SEV_SEG_BRIGHTNESS 90
+#define BUTTON_PIN 2
 
-#define DHTPIN 3
-#define DHTTYPE DHT11
+#define DHT_PIN 3
+#define DHT_TYPE DHT11
+#define DHT_HUMI_BLUE 60
+#define DHT_HUMI_GREEN 50
+#define DHT_TEMPE_GREEN 20
+#define DHT_TEMPE_RED 27
 
-#define HUMI_BLUE 60
-#define HUMI_GREEN 50
-#define LED_BLUE 17
-#define LED_GREEN 19
-#define LED_RED 18
-#define TEMPE_GREEN 20
-#define TEMPE_RED 27
+#define LED_BLUE_PIN 17
+#define LED_GREEN_PIN 19
+#define LED_RED_PIN 18
 
-#define PIN_BUTTON 2
+#define TIMER1_INI 8192
 
 SevSeg sevseg;
-byte numDigits = 4;
-byte digitPins[] = {1, 0, 4, 5};
-byte segmentPins[] = {6, 7, 8, 9, 10, 11, 12, 13};
+byte sevseg_num_digits = 4;
+byte sevseg_digit_pins[] = {1, 0, 4, 5};
+byte sevseg_segment_pins[] = {6, 7, 8, 9, 10, 11, 12, 13};
+// volatile char sevseg_blocked, sevseg_state;
+char sevseg_state, sevseg_toggled;
 
-DHT dht(DHTPIN, DHTTYPE);
-char humi;
-char tempe;
-char buf[6];
-volatile char senState;
+DHT dht(DHT_PIN, DHT_TYPE);
+char dht_humi[2];
+char dht_tempe[2];
+char dht_buf[6];
 
 void setup() {
-  sevseg.begin(COMMON_ANODE, numDigits, digitPins, segmentPins, 1, 1);
-  sevseg.setBrightness(SEV_SEG_BRIGHTNESS);
+    sevseg.begin(COMMON_ANODE, sevseg_num_digits, sevseg_digit_pins,
+          sevseg_segment_pins, 1, 1);
+    sevseg.setBrightness(SEVSEG_BRIGHTNESS);
 
-  dht.begin();
+    pinMode(BUTTON_PIN, INPUT);
 
-  pinMode(PIN_BUTTON, INPUT);
+    dht.begin();
 
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_BLUE, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
+    pinMode(LED_RED_PIN, OUTPUT);
+    pinMode(LED_BLUE_PIN, OUTPUT);
+    pinMode(LED_GREEN_PIN, OUTPUT);
 
-  Timer1.initialize(8192);
-  Timer1.attachInterrupt(refreshDisplay);
+    Timer1.initialize(TIMER1_INI);
+    Timer1.attachInterrupt(sevseg_refresh_display);
 
-  setTemperature();
+    //attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), set_sevseg_state, CHANGE);
+}
 
-  attachInterrupt(digitalPinToInterrupt(2), setSenState, CHANGE);
+void sevseg_refresh_display() {
+    sevseg.refreshDisplay();
+}
+
+//void set_sevseg_state() {
+//    if (sevseg_blocked)
+//        return;
+//
+//    sevseg_blocked = 1;
+//    sevseg_state ^= 1;
+//}
+
+int setHumidity() {
+    dht_humi[1] = dht_humi[0];
+    dht_humi[0] = roundf(dht.readHumidity());
+
+    if (! sevseg_toggled && dht_humi[0] == dht_humi[1])
+        return 1;
+
+    snprintf(dht_buf, sizeof(dht_buf), "%d %s", dht_humi[0], "H");
+    sevseg.setChars(dht_buf);
+
+    if (dht_humi[0] >= DHT_HUMI_BLUE) {
+        digitalWrite(LED_BLUE_PIN, HIGH);
+        digitalWrite(LED_RED_PIN, LOW);
+        digitalWrite(LED_GREEN_PIN, LOW);
+    } else if (dht_humi[0] >= DHT_HUMI_GREEN) {
+        digitalWrite(LED_GREEN_PIN, HIGH);
+        digitalWrite(LED_RED_PIN, LOW);
+        digitalWrite(LED_BLUE_PIN, LOW);
+    } else {
+        digitalWrite(LED_RED_PIN, HIGH);
+        digitalWrite(LED_GREEN_PIN, LOW);
+        digitalWrite(LED_BLUE_PIN, LOW);
+    }
+
+    return 0;
+}
+
+int setTemperature() {
+    dht_tempe[1] = dht_tempe[0];
+    dht_tempe[0] = roundf(dht.readTemperature());
+
+    if (! sevseg_toggled && dht_tempe[0] == dht_tempe[1])
+        return 1;
+
+    snprintf(dht_buf, sizeof(dht_buf), "%d %s", dht_tempe[0], "C");
+    sevseg.setChars(dht_buf);
+
+    if (dht_tempe[0] >= DHT_TEMPE_RED) {
+        digitalWrite(LED_RED_PIN, HIGH);
+        digitalWrite(LED_GREEN_PIN, LOW);
+        digitalWrite(LED_BLUE_PIN, LOW);
+    } else if (dht_tempe[0] >= DHT_TEMPE_GREEN) {
+        digitalWrite(LED_GREEN_PIN, HIGH);
+        digitalWrite(LED_RED_PIN, LOW);
+        digitalWrite(LED_BLUE_PIN, LOW);
+    } else {
+        digitalWrite(LED_BLUE_PIN, HIGH);
+        digitalWrite(LED_RED_PIN, LOW);
+        digitalWrite(LED_GREEN_PIN, LOW);
+    }
+
+    return 0;
 }
 
 void loop() {
-  if (senState) {
-    setHumidity();
-  } else {
-    setTemperature();
-  }
-}
+    if (digitalRead(BUTTON_PIN)) {
+        while (digitalRead(BUTTON_PIN)) {
 
-void refreshDisplay() {
-  sevseg.refreshDisplay();
-}
+        }
+        sevseg_state ^= 1;
+        sevseg_toggled = 1;
+    }
 
-void setSenState() {
-  // if (digitalRead(PIN_BUTTON))
-    senState ^= 1;
-}
+    delay(50);
 
-void setHumidity() {
-  humi = roundf(dht.readHumidity());
-  
-  snprintf(buf, sizeof(buf), "%d %s", humi, "H");
-  sevseg.setChars(buf);
-  setLEDHumidity();
-}
+    if (sevseg_state) {
+        setHumidity();
+    } else {
+        setTemperature();
+    }
 
-void setLEDHumidity() {
-  if (humi >= HUMI_BLUE) {
-    digitalWrite(LED_BLUE, HIGH);
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_GREEN, LOW);
-  } else if (humi >= HUMI_GREEN) {
-    digitalWrite(LED_GREEN, HIGH);
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_BLUE, LOW);
-  } else {
-    digitalWrite(LED_RED, HIGH);
-    digitalWrite(LED_GREEN, LOW);
-    digitalWrite(LED_BLUE, LOW);
-  }
-}
-
-void setTemperature() {
-  tempe = roundf(dht.readTemperature());
-  snprintf(buf, sizeof(buf), "%d %s", tempe, "C");
-  sevseg.setChars(buf);
-  setLEDTemperature();
-}
-
-void setLEDTemperature() {
-  if (tempe >= TEMPE_RED) {
-    digitalWrite(LED_RED, HIGH);
-    digitalWrite(LED_GREEN, LOW);
-    digitalWrite(LED_BLUE, LOW);
-  } else if (tempe >= TEMPE_GREEN) {
-    digitalWrite(LED_GREEN, HIGH);
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_BLUE, LOW);
-  } else {
-    digitalWrite(LED_BLUE, HIGH);
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_GREEN, LOW);
-  }
+    sevseg_toggled = 0;
 }
 
 // vim: ft=c
