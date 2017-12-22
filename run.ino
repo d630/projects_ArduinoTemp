@@ -117,7 +117,8 @@ void setTemperature() {
 
 void loop() {
     if (digitalRead(BUTTON_PIN)) {
-        while (digitalRead(BUTTON_PIN))
+        while (digitalRead(BUTTON_PIN)) {
+        }
         sevseg_ctrl[0] ^= 1;
         sevseg_ctrl[1] = 1;
     }
